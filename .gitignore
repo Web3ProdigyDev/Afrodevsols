@@ -1,7 +1,27 @@
-.anchor
+# Rust build artifacts
+target/
+
+# Anchor
+.anchor/
+**/*.so
+
+# NEVER commit keypairs
+target/deploy/afrodevsols-keypair.json
+**/*.keypair.json
+
+# Node
+node_modules/
+.yarn/cache
+
+# Env files
+.env
+.env.local
+.env*.local
+
+# OS
 .DS_Store
-target
-**/*.rs.bk
-node_modules
-test-ledger
-.yarn
+Thumbs.db
+
+# IDL (generated, not source)
+target/idl/
+target/types/
