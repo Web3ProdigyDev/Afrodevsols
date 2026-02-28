@@ -29,7 +29,7 @@ pub struct Initialize<'info> {
         seeds = [TREASURY_VAULT_SEED],
         bump
     )]
-    pub treasury_vault: UncheckedAccount<'info>,
+    pub treasury_vault: AccountInfo<'info>,
 
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -91,7 +91,7 @@ pub struct FundTreasury<'info> {
         seeds = [TREASURY_VAULT_SEED],
         bump
     )]
-    pub treasury_vault: UncheckedAccount<'info>,
+    pub treasury_vault: AccountInfo<'info>,
 
     #[account(mut)]
     pub funder: Signer<'info>,
@@ -144,7 +144,7 @@ pub struct Claim<'info> {
         seeds = [TREASURY_VAULT_SEED],
         bump
     )]
-    pub treasury_vault: UncheckedAccount<'info>,
+    pub treasury_vault: AccountInfo<'info>,
 
     #[account(
         init_if_needed,
@@ -346,7 +346,7 @@ pub struct ClaimReferralBonus<'info> {
         seeds = [TREASURY_VAULT_SEED],
         bump
     )]
-    pub treasury_vault: UncheckedAccount<'info>,
+    pub treasury_vault: AccountInfo<'info>,
 
     #[account(
         mut,
@@ -414,11 +414,11 @@ pub struct SpecialGrant<'info> {
         seeds = [TREASURY_VAULT_SEED],
         bump
     )]
-    pub treasury_vault: UncheckedAccount<'info>,
+    pub treasury_vault: AccountInfo<'info>,
 
     /// CHECK: The recipient wallet — receives SOL
     #[account(mut)]
-    pub recipient_wallet: UncheckedAccount<'info>,
+    pub recipient_wallet: AccountInfo<'info>,
 
     #[account(
         init,
@@ -617,7 +617,7 @@ pub struct WithdrawTreasury<'info> {
         seeds = [TREASURY_VAULT_SEED],
         bump
     )]
-    pub treasury_vault: UncheckedAccount<'info>,
+    pub treasury_vault: AccountInfo<'info>,
 
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -677,7 +677,7 @@ pub struct CloseClaimerRecord<'info> {
 
     /// CHECK: receives the rent lamports
     #[account(mut)]
-    pub rent_receiver: UncheckedAccount<'info>,
+    pub rent_receiver: AccountInfo<'info>,
 
     pub signer: Signer<'info>,
 }
