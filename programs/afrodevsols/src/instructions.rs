@@ -4,8 +4,17 @@ use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 use crate::state::*;
 use crate::errors::AfrodevsError;
-use crate::events::*;
 use crate::constants::*;
+use crate::{
+    ClaimEvent,
+    ReferralConfirmedEvent,
+    ReferralBonusClaimedEvent,
+    SpecialGrantEvent,
+    ConfigUpdatedEvent,
+    TreasuryFundedEvent,
+    WithdrawalEvent,
+    WalletBlockedEvent,
+};
 
 // ============================================================
 // INSTRUCTION 1: INITIALIZE
@@ -102,7 +111,6 @@ pub struct FundTreasury<'info> {
 pub fn handle_fund_treasury(ctx: Context<FundTreasury>, amount: u64) -> Result<()> {
     require!(amount > 0, AfrodevsError::InvalidAmount);
 
-    // Transfer SOL from funder to treasury vault
     let cpi_context = CpiContext::new(
         ctx.accounts.system_program.to_account_info(),
         system_program::Transfer {
@@ -207,8 +215,7 @@ pub fn handle_claim(
         AfrodevsError::InsufficientTreasury
     );
 
-    // 7. Wallet not blocked
-    // (Only check if record already existed — new accounts can't be blocked)
+    // 7. Wallet not blocked (only if record already existed)
     if claimer_record.total_claims > 0 {
         require!(!claimer_record.is_blocked, AfrodevsError::WalletBlocked);
     }
@@ -238,7 +245,6 @@ pub fn handle_claim(
             && is_new_claimer
             && referrer_key != ctx.accounts.claimer.key()
         {
-            // Valid referral — apply bonus to this claim
             referral_bonus_applied = config.referral_bonus_claimer;
             was_referral = true;
             claimer_record.referred_by = Some(referrer_key);
@@ -265,13 +271,6 @@ pub fn handle_claim(
 
     // ── EXECUTE TRANSFER ─────────────────────────────────────
 
-    // Transfer from treasury vault (PDA) to claimer
-    // PDAs can't sign directly — use invoke_signed with the vault seeds
-    let treasury_seeds = &[
-        TREASURY_VAULT_SEED,
-        &[ctx.bumps.treasury_vault],
-    ];
-
     **ctx.accounts.treasury_vault.try_borrow_mut_lamports()? -= total_amount;
     **ctx.accounts.claimer.try_borrow_mut_lamports()? += total_amount;
 
@@ -279,7 +278,6 @@ pub fn handle_claim(
 
     let new_cooldown_end = current_time + config.cooldown_tier_seconds[tier_index];
 
-    // Update claimer record
     if is_new_claimer {
         claimer_record.wallet = ctx.accounts.claimer.key();
         claimer_record.created_at = current_time;
@@ -301,7 +299,6 @@ pub fn handle_claim(
     claimer_record.cooldown_ends_at[tier_index] = new_cooldown_end;
     claimer_record.last_claim_slot = current_slot;
 
-    // Update global config
     config.total_sol_distributed = config.total_sol_distributed
         .checked_add(total_amount)
         .ok_or(AfrodevsError::Overflow)?;
@@ -377,7 +374,6 @@ pub fn handle_claim_referral_bonus(ctx: Context<ClaimReferralBonus>) -> Result<(
         AfrodevsError::InsufficientTreasury
     );
 
-    // Transfer
     **ctx.accounts.treasury_vault.try_borrow_mut_lamports()? -= bonus_amount;
     **ctx.accounts.referrer.try_borrow_mut_lamports()? += bonus_amount;
 
@@ -395,6 +391,7 @@ pub fn handle_claim_referral_bonus(ctx: Context<ClaimReferralBonus>) -> Result<(
 // ============================================================
 // INSTRUCTION 5: SPECIAL GRANT
 // Admin sends any amount to one wallet. No rules apply.
+// Uses total_claims as nonce so admin can grant same recipient multiple times.
 // ============================================================
 
 #[derive(Accounts)]
@@ -428,7 +425,7 @@ pub struct SpecialGrant<'info> {
             GRANT_RECORD_SEED,
             authority.key().as_ref(),
             recipient.as_ref(),
-            &Clock::get().unwrap().unix_timestamp.to_le_bytes()
+            &faucet_config.total_claims.to_le_bytes(),
         ],
         bump
     )]
@@ -475,7 +472,6 @@ pub fn handle_special_grant(
     grant.is_public = is_public;
     grant.bump = ctx.bumps.grant_record;
 
-    // Store reason as fixed bytes
     let mut reason_bytes = [0u8; 64];
     let reason_slice = reason.as_bytes();
     let copy_len = reason_slice.len().min(64);
@@ -691,12 +687,10 @@ pub fn handle_close_claimer_record(
 
     require!(is_authority || is_owner, AfrodevsError::Unauthorized);
 
-    // Must collect any pending referral bonus first
     require!(
         ctx.accounts.claimer_record.pending_referral_bonus == 0,
         AfrodevsError::NoPendingBonus
     );
 
-    // Account is closed via the `close = rent_receiver` constraint above
     Ok(())
 }

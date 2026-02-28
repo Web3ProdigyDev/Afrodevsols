@@ -4,14 +4,102 @@ use anchor_lang::prelude::*;
 
 pub mod constants;
 pub mod errors;
-pub mod events;
 pub mod state;
 pub mod instructions;
 
 use instructions::*;
 
-// ⚠️ Replace with YOUR actual Program ID from `anchor keys list`
 declare_id!("5UHiP59UBysX4yhJ3pdsdVK2QV6wtjAfB6RsZqztWZiL");
+
+// ── EVENTS ───────────────────────────────────────────────────
+// Declared at crate root so Anchor 0.32.1 can resolve them.
+// instructions.rs imports these via `use crate::EventName;`
+
+#[event]
+pub struct ClaimEvent {
+    pub claimer: Pubkey,
+    pub amount: u64,
+    pub timestamp: i64,
+    pub claimer_total: u64,
+    pub claimer_claim_count: u64,
+    pub cooldown_ends_at: i64,
+    pub tier_index: u8,
+    pub was_referral: bool,
+    pub referral_bonus_applied: u64,
+}
+
+#[event]
+pub struct ReferralConfirmedEvent {
+    pub referrer: Pubkey,
+    pub referred: Pubkey,
+    pub timestamp: i64,
+    pub bonus_queued_for_referrer: u64,
+    pub bonus_applied_to_referred: u64,
+}
+
+#[event]
+pub struct ReferralBonusClaimedEvent {
+    pub referrer: Pubkey,
+    pub amount: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct SpecialGrantEvent {
+    pub recipient: Pubkey,
+    pub amount: u64,
+    pub reason: String,
+    pub is_public: bool,
+    pub authority: Pubkey,
+    pub timestamp: i64,
+    pub new_treasury_balance: u64,
+}
+
+#[event]
+pub struct BulkGrantEvent {
+    pub recipients: Vec<Pubkey>,
+    pub amounts: Vec<u64>,
+    pub reason: String,
+    pub is_public: bool,
+    pub batch_id: i64,
+    pub total_amount: u64,
+    pub authority: Pubkey,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct ConfigUpdatedEvent {
+    pub authority: Pubkey,
+    pub timestamp: i64,
+    pub field_changed: String,
+}
+
+#[event]
+pub struct TreasuryFundedEvent {
+    pub funder: Pubkey,
+    pub amount: u64,
+    pub new_balance: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct WithdrawalEvent {
+    pub authority: Pubkey,
+    pub amount: u64,
+    pub destination: Pubkey,
+    pub new_balance: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct WalletBlockedEvent {
+    pub target_wallet: Pubkey,
+    pub is_blocked: bool,
+    pub authority: Pubkey,
+    pub timestamp: i64,
+}
+
+// ── PROGRAM ──────────────────────────────────────────────────
 
 #[program]
 pub mod afrodevsols {
