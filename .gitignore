@@ -26,3 +26,4 @@ Thumbs.db
 target/idl/
 target/types/
 test-ledger/
+.anchor/
