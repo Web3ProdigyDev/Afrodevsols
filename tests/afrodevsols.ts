@@ -190,6 +190,9 @@ describe("afrodevsols", () => {
       program.programId
     );
 
+    // Wait for a new slot so the double-spend slot check passes
+    await new Promise((r) => setTimeout(r, 500));
+
     const balanceBefore = await provider.connection.getBalance(user1.publicKey);
 
     await program.methods
@@ -436,7 +439,6 @@ describe("afrodevsols", () => {
   // TEST 11: WITHDRAW TREASURY
   // ──────────────────────────────────────────────────────────
   it("✅ admin can withdraw from treasury", async () => {
-    const balanceBefore = await provider.connection.getBalance(authority.publicKey);
     const treasuryBefore = await provider.connection.getBalance(treasuryVaultPDA);
 
     await program.methods
@@ -464,7 +466,7 @@ describe("afrodevsols", () => {
         .updateConfig(true, null, null, null, null, null, null, null, null, null)
         .accounts({
           faucetConfig: faucetConfigPDA,
-          authority: user1.publicKey,  // NOT the real authority
+          authority: user1.publicKey,
         })
         .signers([user1])
         .rpc();
