@@ -25,3 +25,4 @@ Thumbs.db
 # IDL (generated, not source)
 target/idl/
 target/types/
+test-ledger/

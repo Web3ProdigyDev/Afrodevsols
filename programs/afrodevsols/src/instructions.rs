@@ -271,8 +271,19 @@ pub fn handle_claim(
 
     // ── EXECUTE TRANSFER ─────────────────────────────────────
 
-    **ctx.accounts.treasury_vault.try_borrow_mut_lamports()? -= total_amount;
-    **ctx.accounts.claimer.try_borrow_mut_lamports()? += total_amount;
+    let treasury_bump = ctx.bumps.treasury_vault;
+    let treasury_seeds: &[&[u8]] = &[TREASURY_VAULT_SEED, &[treasury_bump]];
+    let signer_seeds = &[treasury_seeds];
+
+    let cpi_context = CpiContext::new_with_signer(
+        ctx.accounts.system_program.to_account_info(),
+        system_program::Transfer {
+            from: ctx.accounts.treasury_vault.to_account_info(),
+            to: ctx.accounts.claimer.to_account_info(),
+        },
+        signer_seeds,
+    );
+    system_program::transfer(cpi_context, total_amount)?;
 
     // ── UPDATE STATE ─────────────────────────────────────────
 
@@ -374,8 +385,21 @@ pub fn handle_claim_referral_bonus(ctx: Context<ClaimReferralBonus>) -> Result<(
         AfrodevsError::InsufficientTreasury
     );
 
-    **ctx.accounts.treasury_vault.try_borrow_mut_lamports()? -= bonus_amount;
-    **ctx.accounts.referrer.try_borrow_mut_lamports()? += bonus_amount;
+    // ── EXECUTE TRANSFER ─────────────────────────────────────
+
+    let treasury_bump = ctx.bumps.treasury_vault;
+    let treasury_seeds: &[&[u8]] = &[TREASURY_VAULT_SEED, &[treasury_bump]];
+    let signer_seeds = &[treasury_seeds];
+
+    let cpi_context = CpiContext::new_with_signer(
+        ctx.accounts.system_program.to_account_info(),
+        system_program::Transfer {
+            from: ctx.accounts.treasury_vault.to_account_info(),
+            to: ctx.accounts.referrer.to_account_info(),
+        },
+        signer_seeds,
+    );
+    system_program::transfer(cpi_context, bonus_amount)?;
 
     referrer_record.pending_referral_bonus = 0;
 
@@ -454,11 +478,24 @@ pub fn handle_special_grant(
         AfrodevsError::InsufficientTreasury
     );
 
-    // Transfer
-    **ctx.accounts.treasury_vault.try_borrow_mut_lamports()? -= amount;
-    **ctx.accounts.recipient_wallet.try_borrow_mut_lamports()? += amount;
+    // ── EXECUTE TRANSFER ─────────────────────────────────────
 
-    // Write grant record
+    let treasury_bump = ctx.bumps.treasury_vault;
+    let treasury_seeds: &[&[u8]] = &[TREASURY_VAULT_SEED, &[treasury_bump]];
+    let signer_seeds = &[treasury_seeds];
+
+    let cpi_context = CpiContext::new_with_signer(
+        ctx.accounts.system_program.to_account_info(),
+        system_program::Transfer {
+            from: ctx.accounts.treasury_vault.to_account_info(),
+            to: ctx.accounts.recipient_wallet.to_account_info(),
+        },
+        signer_seeds,
+    );
+    system_program::transfer(cpi_context, amount)?;
+
+    // ── WRITE GRANT RECORD ────────────────────────────────────
+
     let grant = &mut ctx.accounts.grant_record;
     let clock = Clock::get()?;
     let timestamp = clock.unix_timestamp;
@@ -467,7 +504,7 @@ pub fn handle_special_grant(
     grant.recipient = recipient;
     grant.amount = amount;
     grant.timestamp = timestamp;
-    grant.grant_type = 0; // special
+    grant.grant_type = 0;
     grant.batch_id = 0;
     grant.is_public = is_public;
     grant.bump = ctx.bumps.grant_record;
@@ -633,8 +670,21 @@ pub fn handle_withdraw_treasury(
         AfrodevsError::RentReserveViolation
     );
 
-    **ctx.accounts.treasury_vault.try_borrow_mut_lamports()? -= amount;
-    **ctx.accounts.authority.try_borrow_mut_lamports()? += amount;
+    // ── EXECUTE TRANSFER ─────────────────────────────────────
+
+    let treasury_bump = ctx.bumps.treasury_vault;
+    let treasury_seeds: &[&[u8]] = &[TREASURY_VAULT_SEED, &[treasury_bump]];
+    let signer_seeds = &[treasury_seeds];
+
+    let cpi_context = CpiContext::new_with_signer(
+        ctx.accounts.system_program.to_account_info(),
+        system_program::Transfer {
+            from: ctx.accounts.treasury_vault.to_account_info(),
+            to: ctx.accounts.authority.to_account_info(),
+        },
+        signer_seeds,
+    );
+    system_program::transfer(cpi_context, amount)?;
 
     let new_balance = ctx.accounts.treasury_vault.lamports();
 
